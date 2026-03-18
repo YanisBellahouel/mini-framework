@@ -1,6 +1,5 @@
 // ============================================================
 // INDEX — Point d'entrée du framework
-// Responsabilité : exporter tous les modules
 // ============================================================
 
 export { h, render, mount, diff, patch } from './vdom.js'
