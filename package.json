@@ -1,0 +1,11 @@
+{
+  "name": "mini-framework",
+  "version": "1.0.0",
+  "description": "A lightweight JavaScript framework with Virtual DOM, Routing, State Management and Event Handling",
+  "main": "framework/index.js",
+  "scripts": {
+    "start": "npx serve todo-mvc"
+  },
+  "author": "",
+  "license": "MIT"
+}
