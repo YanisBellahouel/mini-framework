@@ -2,56 +2,30 @@
 // VDOM — Virtual DOM
 // ============================================================
 
-
-// ----------------------------------------------------------
-// h() — Crée un nœud virtuel (vnode)
-// ----------------------------------------------------------
-// Un vnode est un simple objet JS qui décrit un élément HTML
-//
-// Exemple :
-//   h('div', { class: 'box' }, 'Bonjour')
-//   → { tag: 'div', attrs: { class: 'box' }, children: ['Bonjour'] }
-//
 export function h(tag, attrs = {}, ...children) {
   return {
     tag,
     attrs: attrs || {},
-    // children peut contenir des vnodes ou du texte brut
-    // on aplatit les tableaux pour simplifier les listes
     children: children.flat()
   }
 }
 
-
-// ----------------------------------------------------------
-// render() — Transforme un vnode en vrai élément DOM
-// ----------------------------------------------------------
-// Reçoit un vnode (objet JS) et retourne un vrai nœud HTML
-//
 export function render(vnode) {
-
-  // Cas 1 : le vnode est du texte brut (ex: 'Bonjour')
   if (typeof vnode === 'string' || typeof vnode === 'number') {
     return document.createTextNode(vnode)
   }
 
-  // Cas 2 : c'est un élément HTML classique
   const el = document.createElement(vnode.tag)
 
-  // On applique chaque attribut sur l'élément
   for (const [key, value] of Object.entries(vnode.attrs || {})) {
-
-    // Les événements : onClick, onInput, etc.
-    // on les convertit en vrais event listeners
     if (key.startsWith('on') && typeof value === 'function') {
-      const eventName = key.slice(2).toLowerCase() // 'onClick' → 'click'
+      const eventName = key.slice(2).toLowerCase()
       el.addEventListener(eventName, value)
     } else {
       el.setAttribute(key, value)
     }
   }
 
-  // On rend et attache chaque enfant récursivement
   for (const child of vnode.children || []) {
     el.appendChild(render(child))
   }
@@ -59,50 +33,44 @@ export function render(vnode) {
   return el
 }
 
-
-// ----------------------------------------------------------
-// mount() — Injecte le DOM rendu dans un conteneur
-// ----------------------------------------------------------
-// container : l'élément HTML dans lequel on veut afficher
-// vnode     : ce qu'on veut afficher
-//
 export function mount(vnode, container) {
-  // On vide le conteneur
   container.innerHTML = ''
-  // On construit le vrai DOM depuis le vnode
   const el = render(vnode)
-  // On l'injecte dans la page
   container.appendChild(el)
   return el
 }
 
-
-// ----------------------------------------------------------
-// diff() — Compare deux vnodes et retourne les différences
-// ----------------------------------------------------------
-// Retourne un objet "patch" qui décrit quoi changer
-//
 export function diff(oldVnode, newVnode) {
 
-  // Cas 1 : le nouveau nœud n'existe plus → supprimer
+  // Cas 1 : les deux n'existent pas → rien à faire
+  if (oldVnode === undefined && newVnode === undefined) {
+    return null
+  }
+
+  // Cas 2 : oldVnode existe mais newVnode non → supprimer
   if (newVnode === undefined) {
     return { type: 'REMOVE' }
   }
 
-  // Cas 2 : c'est du texte
+  // Cas 3 : oldVnode n'existe pas mais newVnode oui → ajouter
+  if (oldVnode === undefined) {
+    return { type: 'ADD', newVnode }
+  }
+
+  // Cas 4 : les deux sont du texte
   if (typeof oldVnode === 'string' || typeof newVnode === 'string') {
     if (oldVnode !== newVnode) {
       return { type: 'REPLACE', newVnode }
     }
-    return null // rien à changer
+    return null
   }
 
-  // Cas 3 : le tag a changé (ex: div → span) → remplacer entièrement
+  // Cas 5 : le tag a changé → remplacer entièrement
   if (oldVnode.tag !== newVnode.tag) {
     return { type: 'REPLACE', newVnode }
   }
 
-  // Cas 4 : même tag → on vérifie les attributs et les enfants
+  // Cas 6 : même tag → comparer attributs et enfants
   return {
     type: 'UPDATE',
     attrPatches: diffAttrs(oldVnode.attrs, newVnode.attrs),
@@ -110,19 +78,15 @@ export function diff(oldVnode, newVnode) {
   }
 }
 
-
-// Compare les attributs entre l'ancien et le nouveau vnode
 function diffAttrs(oldAttrs = {}, newAttrs = {}) {
   const patches = []
 
-  // Attributs ajoutés ou modifiés
   for (const [key, value] of Object.entries(newAttrs)) {
     if (oldAttrs[key] !== value) {
       patches.push({ type: 'SET_ATTR', key, value })
     }
   }
 
-  // Attributs supprimés
   for (const key of Object.keys(oldAttrs)) {
     if (!(key in newAttrs)) {
       patches.push({ type: 'REMOVE_ATTR', key })
@@ -132,8 +96,6 @@ function diffAttrs(oldAttrs = {}, newAttrs = {}) {
   return patches
 }
 
-
-// Compare les enfants entre l'ancien et le nouveau vnode
 function diffChildren(oldChildren = [], newChildren = []) {
   const patches = []
   const max = Math.max(oldChildren.length, newChildren.length)
@@ -145,27 +107,32 @@ function diffChildren(oldChildren = [], newChildren = []) {
   return patches
 }
 
-
-// ----------------------------------------------------------
-// patch() — Applique les changements sur le vrai DOM
-// ----------------------------------------------------------
-// el    : le vrai élément DOM à modifier
-// patch : l'objet retourné par diff()
-//
 export function patch(el, patchObj) {
-
-  if (!patchObj) return el // rien à faire
+  if (!patchObj) return el
 
   // Supprimer le nœud
   if (patchObj.type === 'REMOVE') {
-    el.parentNode.removeChild(el)
+    if (el && el.parentNode) {
+      el.parentNode.removeChild(el)
+    }
     return null
+  }
+
+  // Ajouter un nouveau nœud
+  if (patchObj.type === 'ADD') {
+    const newEl = render(patchObj.newVnode)
+    if (el && el.parentNode) {
+      el.parentNode.appendChild(newEl)
+    }
+    return newEl
   }
 
   // Remplacer le nœud entièrement
   if (patchObj.type === 'REPLACE') {
     const newEl = render(patchObj.newVnode)
-    el.parentNode.replaceChild(newEl, el)
+    if (el && el.parentNode) {
+      el.parentNode.replaceChild(newEl, el)
+    }
     return newEl
   }
 
@@ -190,11 +157,12 @@ export function patch(el, patchObj) {
     // Appliquer les changements sur les enfants
     const childNodes = Array.from(el.childNodes)
     patchObj.childPatches.forEach((childPatch, i) => {
-      if (childNodes[i]) {
-        patch(childNodes[i], childPatch)
-      } else if (childPatch && childPatch.type === 'REPLACE') {
-        // Nouvel enfant à ajouter
-        el.appendChild(render(childPatch.newVnode))
+      if (childPatch) {
+        if (childNodes[i]) {
+          patch(childNodes[i], childPatch)
+        } else if (childPatch.type === 'ADD' || childPatch.type === 'REPLACE') {
+          el.appendChild(render(childPatch.newVnode))
+        }
       }
     })
   }
