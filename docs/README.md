@@ -401,3 +401,86 @@ The History API (`pushState`) produces cleaner URLs but requires a server
 configured to serve `index.html` for every route. Hash routing works with
 any static file server (or even no server at all), making it the right
 choice for a framework meant to be easy to run locally.
+
+---
+
+## Canvas
+
+### Why a Canvas?
+
+For games running at 60fps, the Virtual DOM is too slow — it's designed for
+UIs, not for redrawing hundreds of elements every frame. The Canvas API lets
+you draw directly on a 2D surface, which is much faster for games.
+
+### Creating a canvas
+```js
+import { createCanvas } from '../framework/index.js'
+
+const screen = createCanvas({
+  containerId: 'app',  // id of the HTML container
+  width: 800,
+  height: 600
+})
+```
+
+### Drawing methods
+```js
+// Fill the background
+screen.setBackground('#1a1a2e')
+
+// Draw a filled rectangle — x, y, width, height, color
+screen.drawRect(100, 100, 40, 40, '#e94560')
+
+// Draw a circle — x, y, radius, color
+screen.drawCircle(200, 200, 20, '#fff')
+
+// Draw text — text, x, y, options
+screen.drawText('Score: 0', 10, 30, { color: '#fff', font: 'bold 16px Arial' })
+
+// Draw an image/sprite
+screen.drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh)
+
+// Clear the canvas (call at the start of each frame)
+screen.clear()
+```
+
+---
+
+## Game Loop
+
+### Why a game loop?
+
+A game needs to update and redraw itself continuously — typically 60 times
+per second. `requestAnimationFrame` is the browser's built-in way to do this
+efficiently, synchronized with the screen refresh rate.
+
+The `deltaTime` parameter tells you how much time passed since the last frame
+(in seconds). Always multiply speeds by `deltaTime` so the game runs at the
+same speed on every machine.
+
+### Creating a game loop
+```js
+import { createCanvas, createGameLoop } from '../framework/index.js'
+
+const screen = createCanvas({ containerId: 'app', width: 800, height: 600 })
+
+let playerX = 0
+
+const loop = createGameLoop({
+
+  // update — game logic (positions, collisions, score...)
+  update(deltaTime) {
+    playerX += 150 * deltaTime  // move 150px per second
+  },
+
+  // draw — render everything on the canvas
+  draw() {
+    screen.setBackground('#1a1a2e')
+    screen.drawRect(playerX, 300, 40, 40, '#e94560')
+  }
+})
+
+loop.start()  // start the loop
+loop.stop()   // pause the loop
+loop.isRunning()  // returns true/false
+```

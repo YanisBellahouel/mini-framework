@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8" /><title>Test Canvas + GameLoop</title></head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { createCanvas, createGameLoop } from './framework/index.js'
+
+    // Crée un canvas 400x400 dans #app
+    const screen = createCanvas({
+      containerId: 'app',
+      width: 400,
+      height: 400
+    })
+
+    // Un carré qui se déplace
+    let x = 0
+    let y = 200
+
+    const loop = createGameLoop({
+
+      // update : logique du jeu
+      update(deltaTime) {
+        x += 150 * deltaTime // avance de 150px par seconde
+        if (x > 400) x = 0  // repart de gauche
+      },
+
+      // draw : dessin
+      draw() {
+        screen.setBackground('#1a1a2e')
+        screen.drawRect(x, y, 40, 40, '#e94560')
+        screen.drawText('Mini-Framework Game Loop ✅', 10, 30, {
+          color: '#fff',
+          font: 'bold 16px Arial'
+        })
+      }
+    })
+
+    loop.start()
+    console.log('✅ Canvas créé')
+    console.log('✅ Game loop démarrée')
+  </script>
+</body>
+</html>
